@@ -7,7 +7,7 @@
 A tiny floating panel for the Zedge upload dashboard.
 
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-userscript-00485b?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.3-5eead4?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.4-5eead4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-fcd34d?style=flat-square)
 
 </div>
@@ -26,6 +26,7 @@ Zedge lets you upload **100 items per 28 days**. Counting that in your head is n
 | 💵 **Live earnings** | Shows your Zedge revenue since a date you choose. It refreshes every 5 minutes, or click it to refresh now. |
 | 🗓️ **History** | Every day's count is listed, so you can fix a mistake or delete an entry. |
 | 🌏 **Sri Lanka time** | Days roll over at midnight in `Asia/Colombo` (UTC+5:30). |
+| 🌗 **Light & dark mode** | Tap the ☀️ / 🌙 button in the header to switch. Your choice is remembered, and the first run follows your system setting. |
 | 🫥 **Collapsible** | Click the header to tuck it away when you don't need it. |
 
 ## 🚀 Install
@@ -56,7 +57,7 @@ Open your **business dashboard** page on Zedge so the panel can find your busine
 
 Everything is stored **locally in your browser** through Tampermonkey. Nothing is sent anywhere except Zedge's own API for your earnings.
 
-**Back it up:** Tampermonkey dashboard → open the script → **Storage** tab (set *Config mode* to **Advanced** in Settings if you can't see it) → copy the value of `zedgeTracker_v1` (and `zedgeTracker_earnStart` for your earnings date). Paste it back into the same key to restore.
+**Back it up:** Tampermonkey dashboard → open the script → **Storage** tab (set *Config mode* to **Advanced** in Settings if you can't see it) → copy the value of `zedgeTracker_v1` (plus `zedgeTracker_earnStart` for your earnings date and `zedgeTracker_theme` for light/dark). Paste it back into the same key to restore.
 
 ## 🛠️ How the earnings part works
 
