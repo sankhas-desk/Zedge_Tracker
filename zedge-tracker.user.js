@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zedge 28-Day Upload Tracker
 // @namespace    https://upload.zedge.net/
-// @version      2.3
+// @version      2.4
 // @description  100 uploads per 28 days tracker + Zedge earnings since a fixed date (minimal UI)
 // @match        https://upload.zedge.net/*
 // @license      MIT
@@ -172,13 +172,16 @@
     const css = document.createElement('style');
     css.textContent = `
       #zt{--bg:rgba(20,22,28,.92);--fg:#f2f3f5;--mut:#8b919e;--line:rgba(255,255,255,.08);--field:rgba(255,255,255,.06);
-          --ok:#5eead4;--bad:#fb7185;--gold:#fcd34d;
+          --ok:#5eead4;--bad:#fb7185;--gold:#fcd34d;--btn-fg:#14161c;--scheme:dark;--shadow:rgba(0,0,0,.35);
           position:fixed;right:16px;bottom:16px;z-index:2147483647;width:264px;background:var(--bg);color:var(--fg);
           font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;border:1px solid var(--line);border-radius:16px;
-          box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden}
+          box-shadow:0 8px 30px var(--shadow);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden}
+      #zt[data-theme="light"]{--bg:rgba(255,255,255,.95);--fg:#14161c;--mut:#6b7280;--line:rgba(0,0,0,.09);--field:rgba(0,0,0,.05);
+          --ok:#0d9488;--bad:#e11d48;--gold:#b45309;--btn-fg:#ffffff;--scheme:light;--shadow:rgba(0,0,0,.15)}
       #zt *{box-sizing:border-box;margin:0}
       #zt .zt-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none}
       #zt .zt-title{font-weight:600;letter-spacing:.01em}
+      #zt .zt-theme{background:none;color:var(--mut);padding:0 8px;font-size:14px;line-height:1;font-weight:400}
       #zt .zt-tog{color:var(--mut);font-size:16px;line-height:1}
       #zt .zt-bd{padding:2px 14px 14px}
       #zt .zt-mut{color:var(--mut);font-size:11.5px}
@@ -193,11 +196,11 @@
       #zt .zt-stats{display:flex;justify-content:space-between}
       #zt .zt-stats b{font-weight:600}
       #zt .zt-form{display:flex;gap:6px;margin-top:12px}
-      #zt input{background:var(--field);color:var(--fg);border:1px solid transparent;border-radius:8px;padding:6px 8px;font:inherit;min-width:0;color-scheme:dark}
+      #zt input{background:var(--field);color:var(--fg);border:1px solid transparent;border-radius:8px;padding:6px 8px;font:inherit;min-width:0;color-scheme:var(--scheme)}
       #zt input:focus{outline:none;border-color:var(--mut)}
       #zt #zt-n{width:56px}
       #zt #zt-d{flex:1}
-      #zt button{background:var(--fg);color:#14161c;border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer}
+      #zt button{background:var(--fg);color:var(--btn-fg);border:0;border-radius:8px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer}
       #zt button:hover{opacity:.85}
       #zt details{margin-top:10px}
       #zt summary{cursor:pointer;color:var(--mut);font-size:11.5px;list-style:none}
@@ -216,7 +219,7 @@
     const box = document.createElement('div');
     box.id = 'zt';
     box.innerHTML = `
-      <div class="zt-hd"><span class="zt-title">Zedge Tracker</span><span class="zt-tog" id="zt-tog">–</span></div>
+      <div class="zt-hd"><span class="zt-title">Zedge Tracker</span><span style="display:flex;align-items:center"><button class="zt-theme" id="zt-theme" title="Switch light / dark"></button><span class="zt-tog" id="zt-tog">–</span></span></div>
       <div class="zt-bd" id="zt-bd">
         <div class="zt-earn" id="zt-earn" title="Click to refresh earnings"></div>
         <div id="zt-info"></div>
@@ -238,6 +241,27 @@
     const info = $('zt-info'), hist = $('zt-hist'), nIn = $('zt-n'), dIn = $('zt-d');
     earnEl = $('zt-earn');
     earnEl.addEventListener('click', () => updateEarn());
+
+    // theme: saved choice, else follow the system
+    const TKEY = 'zedgeTracker_theme';
+    let theme = 'dark';
+    try {
+      const t = typeof GM_getValue === 'function' ? GM_getValue(TKEY, '') : localStorage.getItem(TKEY);
+      theme = (t === 'light' || t === 'dark') ? t
+        : (W.matchMedia && W.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    } catch (e) {}
+    const themeBtn = $('zt-theme');
+    function applyTheme() {
+      box.setAttribute('data-theme', theme);
+      themeBtn.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+    applyTheme();
+    themeBtn.addEventListener('click', e => {
+      e.stopPropagation();   // don't collapse the panel
+      theme = theme === 'light' ? 'dark' : 'light';
+      try { typeof GM_setValue === 'function' ? GM_setValue(TKEY, theme) : localStorage.setItem(TKEY, theme); } catch (e2) {}
+      applyTheme();
+    });
 
     const esIn = $('zt-es');
     esIn.value = EARN_START;
