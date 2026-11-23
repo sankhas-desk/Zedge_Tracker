@@ -1,9 +1,12 @@
 // ==UserScript==
 // @name         Zedge 28-Day Upload Tracker
 // @namespace    https://upload.zedge.net/
-// @version      2.2
+// @version      2.3
 // @description  100 uploads per 28 days tracker + Zedge earnings since a fixed date (minimal UI)
 // @match        https://upload.zedge.net/*
+// @license      MIT
+// @updateURL    https://raw.githubusercontent.com/sankhas-desk/Zedge_Tracker/main/zedge-tracker.user.js
+// @downloadURL  https://raw.githubusercontent.com/sankhas-desk/Zedge_Tracker/main/zedge-tracker.user.js
 // @run-at       document-start
 // @grant        GM_getValue
 // @grant        GM_setValue
