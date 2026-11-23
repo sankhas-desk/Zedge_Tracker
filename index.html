@@ -131,7 +131,10 @@
   .steps p { color: var(--mute); font-size: 15.5px; margin-top: 4px; max-width: 46ch; }
   .steps .also { font-size: 13.5px; color: var(--mute); margin-top: 8px; }
   .steps .also a { color: var(--ink); }
+  .steps .also code { word-break: break-all; }
   .step-action { justify-self: end; }
+  .steps li[hidden] { display: none; }
+  button.btn { font-family: var(--body); }
 
   /* feature rows */
   .rows { margin-top: 36px; }
@@ -179,7 +182,7 @@
       <a class="hide-sm" href="#install">Install</a>
       <a class="hide-sm" href="#features">Features</a>
       <a class="hide-sm" href="#use">How to use</a>
-      <a href="https://github.com/sankhas-desk/Zedge_Tracker" rel="noopener">GitHub</a>
+      <a href="https://github.com/sankhas-desk/Zedge_Tracker" target="_blank" rel="noopener noreferrer">GitHub</a>
       <button class="theme" id="theme" aria-label="Switch light or dark mode" title="Switch light / dark"></button>
     </nav>
   </header>
@@ -191,7 +194,7 @@
         <p class="lede">A small panel on the Zedge upload dashboard. It shows how many you can upload today and what you've earned so far.</p>
         <div class="cta">
           <a class="btn solid" href="#install">Get started</a>
-          <a class="btn ghost" href="https://github.com/sankhas-desk/Zedge_Tracker" rel="noopener">View on GitHub</a>
+          <a class="btn ghost" href="https://github.com/sankhas-desk/Zedge_Tracker" target="_blank" rel="noopener noreferrer">View on GitHub</a>
         </div>
       </div>
 
@@ -225,23 +228,33 @@
         <div>
           <h3>Add Violentmonkey to your browser</h3>
           <p>It's a free extension that runs small scripts on the sites you choose.</p>
-          <p class="also">Other browsers: <a id="vm-chrome" href="#" rel="noopener">Chrome</a>, <a id="vm-firefox" href="#" rel="noopener">Firefox</a>, <a id="vm-edge" href="#" rel="noopener">Edge</a>, <a href="https://violentmonkey.github.io/get-it/" rel="noopener">more</a>. Tampermonkey works too.</p>
+          <p class="also">Other browsers: <a id="vm-chrome" href="#" target="_blank" rel="noopener noreferrer">Chrome</a>, <a id="vm-firefox" href="#" target="_blank" rel="noopener noreferrer">Firefox</a>, <a id="vm-edge" href="#" target="_blank" rel="noopener noreferrer">Edge</a>, <a href="https://violentmonkey.github.io/get-it/" target="_blank" rel="noopener noreferrer">more</a>. Tampermonkey works too.</p>
         </div>
-        <div class="step-action"><a class="btn solid" id="vm-main" href="https://violentmonkey.github.io/get-it/" rel="noopener">Install Violentmonkey</a></div>
+        <div class="step-action"><a class="btn solid" id="vm-main" href="https://violentmonkey.github.io/get-it/" target="_blank" rel="noopener noreferrer">Install Violentmonkey</a></div>
+      </li>
+      <li id="step-allow" hidden>
+        <div>
+          <h3>Turn on Allow User Scripts</h3>
+          <p>Press <b>Open Extension</b>, paste the copied link into a new tab, then switch on <b>Allow User Scripts</b>. Chrome and Edge don't let web pages open their settings directly, so the last bit is a paste.</p>
+          <p class="also"><code id="allow-link"></code></p>
+          <p class="also" id="allow-msg" role="status" aria-live="polite"></p>
+          <p class="also">Or by hand: puzzle icon, <b>Manage extensions</b>, Violentmonkey <b>Details</b>.</p>
+        </div>
+        <div class="step-action"><button class="btn solid" id="allow-copy" type="button">Open Extension</button></div>
       </li>
       <li>
         <div>
           <h3>Install the tracker script</h3>
           <p>Violentmonkey opens a confirm screen. Press Install there. Updates arrive on their own after that.</p>
         </div>
-        <div class="step-action"><a class="btn solid" href="https://raw.githubusercontent.com/sankhas-desk/Zedge_Tracker/main/zedge-tracker.user.js">Install script</a></div>
+        <div class="step-action"><a class="btn solid" href="https://raw.githubusercontent.com/sankhas-desk/Zedge_Tracker/main/zedge-tracker.user.js" target="_blank" rel="noopener noreferrer">Install script</a></div>
       </li>
       <li>
         <div>
           <h3>Open your Zedge dashboard</h3>
-          <p>The panel appears in the bottom-right corner of <a href="https://upload.zedge.net/" rel="noopener">upload.zedge.net</a>. If the script page only shows code, do step 1 first.</p>
+          <p>The panel appears in the bottom-right corner of <a href="https://upload.zedge.net/" target="_blank" rel="noopener noreferrer">upload.zedge.net</a>. If the script page only shows code, finish the steps above first.</p>
         </div>
-        <div class="step-action"><a class="btn ghost" href="https://upload.zedge.net/" rel="noopener">Open Zedge</a></div>
+        <div class="step-action"><a class="btn ghost" href="https://upload.zedge.net/" target="_blank" rel="noopener noreferrer">Open Zedge</a></div>
       </li>
     </ol>
   </section>
@@ -303,7 +316,7 @@
 <footer>
   <div class="wrap">
     <span>Unofficial tool, not affiliated with Zedge. If Zedge changes its dashboard, the earnings line may stop working. The upload counter keeps working.</span>
-    <span>MIT licensed · Made in Sri Lanka by <a href="https://github.com/sankhas-desk" rel="noopener">sankhas-desk</a></span>
+    <span>MIT licensed · Made in Sri Lanka by <a href="https://github.com/sankhas-desk" target="_blank" rel="noopener noreferrer">sankhas-desk</a></span>
   </div>
 </footer>
 
@@ -333,6 +346,23 @@
     if (/Firefox\//.test(ua)) { main.href = links.firefox; main.textContent = 'Install for Firefox'; }
     else if (/Edg\//.test(ua)) { main.href = links.edge; main.textContent = 'Install for Edge'; }
     else if (/Chrome\//.test(ua) && !/OPR\/|Brave/.test(ua)) { main.href = links.chrome; main.textContent = 'Install for Chrome'; }
+  })();
+
+  // Chrome / Edge: shortcut to the extension's settings page (copy, because web pages can't open chrome:// links)
+  (function () {
+    var ua = navigator.userAgent, link = null;
+    if (/Edg\//.test(ua)) link = 'edge://extensions/?id=eeagobfjdenkkddmbclomhiblgggliao';
+    else if (/Chrome\//.test(ua) && !/Firefox\/|OPR\//.test(ua)) link = 'chrome://extensions/?id=jinjaccalgkegednnccohejagnlnfdag';
+    if (!link) return;
+    var step = document.getElementById('step-allow'), btn = document.getElementById('allow-copy');
+    step.hidden = false;
+    document.getElementById('allow-link').textContent = link;
+    btn.addEventListener('click', function () {
+      var msg = document.getElementById('allow-msg');
+      function ok() { msg.textContent = 'Link copied. Open a new tab (Ctrl+T), paste it and press Enter.'; }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(ok, function () { window.prompt('Copy this link:', link); });
+      else window.prompt('Copy this link:', link);
+    });
   })();
 
   // interactive demo
