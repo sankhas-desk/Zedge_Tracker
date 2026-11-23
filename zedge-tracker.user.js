@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zedge 28-Day Upload Tracker
 // @namespace    https://upload.zedge.net/
-// @version      2.4
+// @version      2.5
 // @description  100 uploads per 28 days tracker + Zedge earnings since a fixed date (minimal UI)
 // @match        https://upload.zedge.net/*
 // @license      MIT
@@ -48,6 +48,27 @@
      EARNINGS: copy the dashboard's own request settings (memory only).
      ===================================================================== */
   let template = null, earnTimer, earnBusy = false;
+
+  // keep the last captured request settings so earnings still work right after a page refresh
+  // (stored privately in Tampermonkey storage; cleared automatically if the session expires)
+  const RKEY = 'zedgeTracker_req';
+  let lastSaved = '';
+  function loadReq() {
+    try {
+      const raw = typeof GM_getValue === 'function' ? GM_getValue(RKEY, '') : localStorage.getItem(RKEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      return o && o.headers && typeof o.headers === 'object' ? o : null;
+    } catch (e) { return null; }
+  }
+  function saveReq(o) {
+    const str = o ? JSON.stringify(o) : '';
+    if (str === lastSaved) return;
+    lastSaved = str;
+    try { typeof GM_setValue === 'function' ? GM_setValue(RKEY, str) : localStorage.setItem(RKEY, str); } catch (e) {}
+  }
+  template = loadReq();
+  lastSaved = template ? JSON.stringify(template) : '';
   const _fetch = W.fetch;
 
   W.fetch = function (input, init) {
@@ -64,6 +85,7 @@
           const mode = (init && init.mode) || (input && input.mode);
           if (cred) template.credentials = cred;
           if (mode) template.mode = mode;
+          saveReq(template);
           scheduleEarn(500);
         }
       }
@@ -88,7 +110,7 @@
   async function updateEarn() {
     const id = businessId();
     if (!id) { showEarn('—', 'open your business dashboard'); return; }
-    if (!template) { showEarn('…', 'waiting for the page to load'); return; }
+    if (!template) { showEarn('…', 'waiting for the page to load (click to retry)'); return; }
     if (earnBusy) return;
     earnBusy = true;
     try {
@@ -106,9 +128,17 @@
 
       const res = await _fetch.call(W, API, opts);
       const text = await res.text();
-      let json;
-      try { json = JSON.parse(text); } catch (e) { throw new Error('HTTP ' + res.status + ': ' + text.slice(0, 120)); }
-      if (json.errors && json.errors.length) throw new Error(json.errors[0].message);
+      let json = null;
+      try { json = JSON.parse(text); } catch (e) {}
+      const errMsg = json && json.errors && json.errors.length ? String(json.errors[0].message || '') : '';
+      if (res.status === 401 || res.status === 403 || /unauth|token|expired|forbidden|jwt|not authori/i.test(errMsg)) {
+        // saved session is out of date: drop it and wait for the page's own fresh request
+        template = null; saveReq(null);
+        showEarn('…', 'session expired, open any dashboard page');
+        return;
+      }
+      if (!json) throw new Error('HTTP ' + res.status + ': ' + text.slice(0, 120));
+      if (errMsg) throw new Error(errMsg);
       const v = json.data && json.data.insightsTotalsAsUser && json.data.insightsTotalsAsUser.revenue.value;
       if (typeof v !== 'number') throw new Error('Unexpected reply: ' + text.slice(0, 120));
       showEarn('$' + v.toFixed(2), `since ${EARN_START}`);
