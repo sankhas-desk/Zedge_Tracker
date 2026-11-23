@@ -7,7 +7,7 @@
 A tiny floating panel for the Zedge upload dashboard.
 
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-userscript-00485b?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.4-5eead4?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.5-5eead4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-fcd34d?style=flat-square)
 
 </div>
@@ -57,11 +57,11 @@ Open your **business dashboard** page on Zedge so the panel can find your busine
 
 Everything is stored **locally in your browser** through Tampermonkey. Nothing is sent anywhere except Zedge's own API for your earnings.
 
-**Back it up:** Tampermonkey dashboard → open the script → **Storage** tab (set *Config mode* to **Advanced** in Settings if you can't see it) → copy the value of `zedgeTracker_v1` (plus `zedgeTracker_earnStart` for your earnings date and `zedgeTracker_theme` for light/dark). Paste it back into the same key to restore.
+**Back it up:** Tampermonkey dashboard → open the script → **Storage** tab (set *Config mode* to **Advanced** in Settings if you can't see it) → copy the value of `zedgeTracker_v1` (plus `zedgeTracker_earnStart` for your earnings date and `zedgeTracker_theme` for light/dark; don't share `zedgeTracker_req`, it holds your session). Paste it back into the same key to restore.
 
 ## 🛠️ How the earnings part works
 
-The dashboard is a single-page app that already talks to Zedge's API. The script copies the request settings from the page's own calls (in memory only, never stored) and reuses them to ask for your revenue total. No passwords or tokens are written to disk, and none are in this repo.
+The dashboard is a single-page app that already talks to Zedge's API. The script copies the request settings from the page's own calls and reuses them to ask for your revenue total. So earnings still show right after you refresh, the latest settings (including the session token the dashboard sends) are kept in Tampermonkey's private storage on your computer. They are only ever sent back to Zedge, and they're cleared automatically when the session expires. Nothing like this is in this repo.
 
 ## ⚠️ Heads up
 
