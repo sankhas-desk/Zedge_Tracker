@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zedge Tracker: never lose count of your 100 uploads</title>
+<meta name="description" content="A small userscript for the Zedge upload dashboard. Tracks the 100-uploads-per-28-days limit and shows your earnings since a date you choose.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+  // set the theme before first paint so there is no flash
+  (function () {
+    try {
+      var t = localStorage.getItem('zt-site-theme');
+      if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+  })();
+</script>
+<style>
+  :root {
+    --paper: #f4f5fa;
+    --ink: #16171f;
+    --mute: #636775;
+    --line: rgba(22, 23, 31, .12);
+    --accent: #0d9488;
+    --accent-soft: rgba(13, 148, 136, .12);
+    --btn-bg: #16171f;
+    --btn-fg: #ffffff;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  [data-theme="dark"] {
+    --paper: #101117;
+    --ink: #eceef4;
+    --mute: #9096a6;
+    --line: rgba(236, 238, 244, .12);
+    --accent: #5eead4;
+    --accent-soft: rgba(94, 234, 212, .12);
+    --btn-bg: #eceef4;
+    --btn-fg: #101117;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font: 17px/1.6 var(--body);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  /* top bar */
+  header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .brand { font: 700 18px var(--display); text-decoration: none; letter-spacing: -.01em; }
+  nav { display: flex; align-items: center; gap: 22px; font-size: 15px; }
+  nav a { text-decoration: none; color: var(--mute); }
+  nav a:hover { color: var(--ink); }
+  .theme {
+    background: none; border: 1px solid var(--line); color: var(--ink); width: 36px; height: 36px;
+    border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  .theme:hover { border-color: var(--mute); }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; padding: 56px 0 88px; }
+  h1 {
+    font: 800 clamp(40px, 6vw, 68px)/1.02 var(--display);
+    letter-spacing: -.035em; max-width: 12ch;
+  }
+  .lede { margin-top: 22px; color: var(--mute); font-size: 19px; max-width: 34ch; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px;
+    font: 700 15px var(--body); text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: transform .15s, opacity .15s;
+  }
+  .btn.solid { background: var(--btn-bg); color: var(--btn-fg); }
+  .btn.ghost { border-color: var(--line); color: var(--ink); background: none; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.solid:hover { opacity: .9; }
+  .btn.ghost:hover { border-color: var(--mute); }
+
+  /* demo panel: a copy of the real one */
+  .demo-wrap { justify-self: end; width: 100%; max-width: 330px; }
+  .panel {
+    --p-fg: #f2f3f5; --p-mut: #8b919e; --p-line: rgba(255,255,255,.09); --p-field: rgba(255,255,255,.07);
+    background: #14161c; color: var(--p-fg); border-radius: 20px; padding: 18px 20px 20px;
+    box-shadow: 0 24px 60px rgba(16, 17, 23, .28); font-size: 14px; line-height: 1.45;
+  }
+  [data-theme="dark"] .panel { box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 24px 60px rgba(0,0,0,.5); }
+  .p-top { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+  .p-earn { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 14px; }
+  .p-earn b { font: 700 22px var(--display); color: #fcd34d; }
+  .p-mut { color: var(--p-mut); font-size: 12px; }
+  .p-hero { display: flex; align-items: baseline; gap: 12px; border-top: 1px solid var(--p-line); padding-top: 14px; }
+  .p-big { font: 800 62px/1 var(--display); letter-spacing: -.03em; color: #5eead4; transition: color .2s; }
+  .p-big.zero { color: #fb7185; }
+  .p-bar { height: 5px; border-radius: 5px; background: var(--p-field); margin: 14px 0 10px; overflow: hidden; }
+  .p-bar i { display: block; height: 100%; width: 0; background: #5eead4; border-radius: 5px; transition: width .6s cubic-bezier(.2,.8,.2,1); }
+  .p-row { display: flex; justify-content: space-between; }
+  .p-row b { font-weight: 700; }
+  .p-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .p-actions button {
+    flex: 1; border: 0; border-radius: 10px; padding: 9px 0; font: 700 13px var(--body); cursor: pointer;
+    background: #f2f3f5; color: #14161c;
+  }
+  .p-actions button.quiet { background: var(--p-field); color: var(--p-fg); }
+  .p-actions button:hover { opacity: .85; }
+  .demo-note { margin-top: 14px; color: var(--mute); font-size: 13px; text-align: center; }
+
+  /* sections */
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  h2 { font: 800 clamp(28px, 4vw, 40px)/1.1 var(--display); letter-spacing: -.025em; }
+  .sec-intro { color: var(--mute); margin-top: 12px; max-width: 46ch; }
+
+  /* install steps: a real sequence */
+  .steps { list-style: none; padding: 0; margin-top: 40px; counter-reset: s; }
+  .steps li {
+    display: grid; grid-template-columns: 64px 1fr auto; gap: 8px 24px; align-items: center;
+    padding: 28px 0; border-top: 1px solid var(--line); counter-increment: s;
+  }
+  .steps li:last-child { border-bottom: 1px solid var(--line); }
+  .steps li::before { content: counter(s); font: 800 44px/1 var(--display); color: var(--accent); }
+  .steps h3 { font: 700 21px var(--display); letter-spacing: -.01em; }
+  .steps p { color: var(--mute); font-size: 15.5px; margin-top: 4px; max-width: 46ch; }
+  .steps .also { font-size: 13.5px; color: var(--mute); margin-top: 8px; }
+  .steps .also a { color: var(--ink); }
+  .step-action { justify-self: end; }
+
+  /* feature rows */
+  .rows { margin-top: 36px; }
+  .row { display: grid; grid-template-columns: 240px 1fr; gap: 24px; padding: 22px 0; border-top: 1px solid var(--line); }
+  .row:last-child { border-bottom: 1px solid var(--line); }
+  .row dt { font: 700 18px var(--display); }
+  .row dd { color: var(--mute); max-width: 56ch; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 8px; }
+  .cols h3 { font: 700 20px var(--display); margin: 28px 0 10px; }
+  .cols p, .cols li { color: var(--mute); }
+  .cols ol, .cols ul { padding-left: 20px; display: grid; gap: 6px; }
+  code {
+    font: 500 .88em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--accent-soft);
+    padding: 2px 6px; border-radius: 6px; color: var(--ink);
+  }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 56px; color: var(--mute); font-size: 14.5px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  footer a { color: var(--ink); }
+
+  /* one page-load moment: the bar fills in the demo (see script) */
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 28px; }
+    .demo-wrap { justify-self: start; }
+    .steps li { grid-template-columns: 44px 1fr; }
+    .steps li::before { font-size: 34px; }
+    .step-action { grid-column: 2; justify-self: start; margin-top: 6px; }
+    .row { grid-template-columns: 1fr; gap: 6px; }
+    .cols { grid-template-columns: 1fr; gap: 0; }
+    nav a.hide-sm { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="#top">Zedge Tracker</a>
+    <nav>
+      <a class="hide-sm" href="#install">Install</a>
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#use">How to use</a>
+      <a href="https://github.com/sankhas-desk/Zedge_Tracker" rel="noopener">GitHub</a>
+      <button class="theme" id="theme" aria-label="Switch light or dark mode" title="Switch light / dark"></button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <div class="hero">
+      <div>
+        <h1>Never lose count of your 100 uploads.</h1>
+        <p class="lede">A small panel on the Zedge upload dashboard. It shows how many you can upload today and what you've earned so far.</p>
+        <div class="cta">
+          <a class="btn solid" href="#install">Get started</a>
+          <a class="btn ghost" href="https://github.com/sankhas-desk/Zedge_Tracker" rel="noopener">View on GitHub</a>
+        </div>
+      </div>
+
+      <div class="demo-wrap">
+        <div class="panel" aria-label="Interactive demo of the tracker panel">
+          <div class="p-top"><span>Zedge Tracker</span><span class="p-mut">–</span></div>
+          <div class="p-earn"><b>$24.80</b><span class="p-mut">since 2026-10-18</span></div>
+          <div class="p-hero">
+            <span class="p-big" id="d-big">3</span>
+            <span class="p-mut">can upload today<br>allowance 3 · done <span id="d-done">0</span></span>
+          </div>
+          <div class="p-bar"><i id="d-bar"></i></div>
+          <div class="p-row"><span class="p-mut">Used</span><b><span id="d-used">36</span> / 100</b></div>
+          <div class="p-row"><span class="p-mut">Day</span><b>12 of 28</b></div>
+          <div class="p-row"><span class="p-mut">Days left</span><b>16</b></div>
+          <div class="p-actions">
+            <button id="d-add">I uploaded one</button>
+            <button class="quiet" id="d-reset">Reset</button>
+          </div>
+        </div>
+        <p class="demo-note">Try it. This is a demo, nothing is saved.</p>
+      </div>
+    </div>
+  </main>
+
+  <section id="install">
+    <h2>Install in two clicks</h2>
+    <p class="sec-intro">You need a userscript manager once. Then the script installs like any extension.</p>
+    <ol class="steps">
+      <li>
+        <div>
+          <h3>Add Violentmonkey to your browser</h3>
+          <p>It's a free extension that runs small scripts on the sites you choose.</p>
+          <p class="also">Other browsers: <a id="vm-chrome" href="#" rel="noopener">Chrome</a>, <a id="vm-firefox" href="#" rel="noopener">Firefox</a>, <a id="vm-edge" href="#" rel="noopener">Edge</a>, <a href="https://violentmonkey.github.io/get-it/" rel="noopener">more</a>. Tampermonkey works too.</p>
+        </div>
+        <div class="step-action"><a class="btn solid" id="vm-main" href="https://violentmonkey.github.io/get-it/" rel="noopener">Install Violentmonkey</a></div>
+      </li>
+      <li>
+        <div>
+          <h3>Install the tracker script</h3>
+          <p>Violentmonkey opens a confirm screen. Press Install there. Updates arrive on their own after that.</p>
+        </div>
+        <div class="step-action"><a class="btn solid" href="https://raw.githubusercontent.com/sankhas-desk/Zedge_Tracker/main/zedge-tracker.user.js">Install script</a></div>
+      </li>
+      <li>
+        <div>
+          <h3>Open your Zedge dashboard</h3>
+          <p>The panel appears in the bottom-right corner of <a href="https://upload.zedge.net/" rel="noopener">upload.zedge.net</a>. If the script page only shows code, do step 1 first.</p>
+        </div>
+        <div class="step-action"><a class="btn ghost" href="https://upload.zedge.net/" rel="noopener">Open Zedge</a></div>
+      </li>
+    </ol>
+  </section>
+
+  <section id="features">
+    <h2>What it does</h2>
+    <p class="sec-intro">Zedge lets you upload 100 items per 28 days. The panel does the counting for you.</p>
+    <dl class="rows">
+      <div class="row"><dt>Daily allowance</dt><dd>Shows how many you can upload today to stay on pace, about 3 a day. Unused uploads carry over to the next day.</dd></div>
+      <div class="row"><dt>Progress bar</dt><dd>Your 28-day usage at a glance, as used out of 100.</dd></div>
+      <div class="row"><dt>Rolling mode</dt><dd>After your first 28 days it switches to a true rolling window and tells you how many slots free up tomorrow.</dd></div>
+      <div class="row"><dt>Live earnings</dt><dd>Your Zedge revenue since a date you choose. It refreshes every 5 minutes, or click it to refresh now.</dd></div>
+      <div class="row"><dt>History</dt><dd>Every day's count is listed. Fix a mistake or delete an entry whenever you like.</dd></div>
+      <div class="row"><dt>Sri Lanka time</dt><dd>Days roll over at midnight in Asia/Colombo (UTC+5:30).</dd></div>
+      <div class="row"><dt>Light and dark</dt><dd>Tap the sun or moon in the panel header. Your choice is remembered.</dd></div>
+    </dl>
+  </section>
+
+  <section id="use">
+    <h2>How to use it</h2>
+    <div class="cols">
+      <div>
+        <h3>Logging uploads</h3>
+        <ol>
+          <li>On the first run, type how many images you uploaded today (0 if none yet) and press Add. That starts day 1 of your 28 days.</li>
+          <li>After each upload session, enter the number and press Add.</li>
+          <li>To log a past day, change the date first.</li>
+          <li>Watch the big number. That's how many you can upload today.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Setting the earnings date</h3>
+        <ol>
+          <li>Open <b>History &amp; settings</b> at the bottom of the panel.</li>
+          <li>Pick a date under <b>Earnings start date</b>.</li>
+          <li>The total refreshes right away and your choice is remembered.</li>
+        </ol>
+        <p style="margin-top:10px">Open your business dashboard page on Zedge so the panel can find your business. Until you pick a date it uses <code>2026-10-18</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="data">
+    <h2>Your data stays with you</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-top:12px">Everything is stored locally in your browser by your userscript manager. Your upload counts, earnings date and theme never leave your computer.</p>
+        <h3>Backing up</h3>
+        <p>Open the script in your userscript manager, go to its storage view and copy the value of <code>zedgeTracker_v1</code>. Paste it back into the same key to restore.</p>
+      </div>
+      <div>
+        <h3>How earnings work</h3>
+        <p style="margin-top:0">The dashboard already talks to Zedge's API. The script copies the request settings from the page's own calls and reuses them to ask for your revenue total. So earnings show right after a refresh, the latest settings, including the session token the dashboard sends, are kept in your userscript manager's private storage. They are only ever sent back to Zedge, and are cleared when the session expires. Don't share the <code>zedgeTracker_req</code> value if you copy your data out.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Unofficial tool, not affiliated with Zedge. If Zedge changes its dashboard, the earnings line may stop working. The upload counter keeps working.</span>
+    <span>MIT licensed · Made in Sri Lanka by <a href="https://github.com/sankhas-desk" rel="noopener">sankhas-desk</a></span>
+  </div>
+</footer>
+
+<script>
+  // theme toggle
+  (function () {
+    var root = document.documentElement, btn = document.getElementById('theme');
+    function paint() { btn.textContent = root.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙'; }
+    paint();
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('zt-site-theme', next); } catch (e) {}
+      paint();
+    });
+  })();
+
+  // pick the right Violentmonkey store link for this browser
+  (function () {
+    var links = {
+      chrome: 'https://chromewebstore.google.com/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdb',
+      firefox: 'https://addons.mozilla.org/firefox/addon/violentmonkey/',
+      edge: 'https://microsoftedge.microsoft.com/addons/detail/violentmonkey/eeagobfjdenkkddmbclomhiblgggliao'
+    };
+    ['chrome', 'firefox', 'edge'].forEach(function (k) { document.getElementById('vm-' + k).href = links[k]; });
+    var ua = navigator.userAgent, main = document.getElementById('vm-main');
+    if (/Firefox\//.test(ua)) { main.href = links.firefox; main.textContent = 'Install for Firefox'; }
+    else if (/Edg\//.test(ua)) { main.href = links.edge; main.textContent = 'Install for Edge'; }
+    else if (/Chrome\//.test(ua) && !/OPR\/|Brave/.test(ua)) { main.href = links.chrome; main.textContent = 'Install for Chrome'; }
+  })();
+
+  // interactive demo
+  (function () {
+    var done = 0, used = 36, ALLOW = 3, LIMIT = 100;
+    var big = document.getElementById('d-big'), dn = document.getElementById('d-done'),
+        us = document.getElementById('d-used'), bar = document.getElementById('d-bar');
+    function paint() {
+      var can = Math.max(0, ALLOW - done);
+      big.textContent = can;
+      big.classList.toggle('zero', can === 0);
+      dn.textContent = done;
+      us.textContent = used;
+      bar.style.width = Math.min(100, used / LIMIT * 100) + '%';
+    }
+    document.getElementById('d-add').addEventListener('click', function () {
+      if (used < LIMIT) { done++; used++; paint(); }
+    });
+    document.getElementById('d-reset').addEventListener('click', function () { done = 0; used = 36; paint(); });
+    paint(); bar.style.width = '0%';
+    requestAnimationFrame(function () { requestAnimationFrame(function () { bar.style.width = used / LIMIT * 100 + '%'; }); });
+  })();
+</script>
+</body>
+</html>
