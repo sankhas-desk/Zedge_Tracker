@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zedge 28-Day Upload Tracker
 // @namespace    https://upload.zedge.net/
-// @version      2.1
+// @version      2.2
 // @description  100 uploads per 28 days tracker + Zedge earnings since a fixed date (minimal UI)
 // @match        https://upload.zedge.net/*
 // @run-at       document-start
@@ -18,7 +18,13 @@
   const KEY = 'zedgeTracker_v1';                          // same key = your saved data is kept
 
   // earnings settings
-  const EARN_START = '2026-10-18';                        // <- change this to move the earnings start date
+  const EARN_START_DEFAULT = '2026-10-18';                // used until you pick a date in the panel
+  const EKEY = 'zedgeTracker_earnStart';
+  let EARN_START = EARN_START_DEFAULT;
+  try {
+    const v = typeof GM_getValue === 'function' ? GM_getValue(EKEY, '') : localStorage.getItem(EKEY);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v || '')) EARN_START = v;
+  } catch (e) {}
   const API = 'https://api-gateway-v2.zedge.net';
   const EARN_REFRESH_MS = 5 * 60 * 1000;
   const EARN_QUERY = `
@@ -193,6 +199,8 @@
       #zt details{margin-top:10px}
       #zt summary{cursor:pointer;color:var(--mut);font-size:11.5px;list-style:none}
       #zt summary::-webkit-details-marker{display:none}
+      #zt .zt-set{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+      #zt .zt-set input{flex:1;max-width:140px}
       #zt .zt-hist{max-height:110px;overflow:auto;margin-top:6px}
       #zt .zt-hist .r{display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:12px}
       #zt .zt-hist button{background:none;color:var(--mut);padding:0 4px;font-weight:400}
@@ -215,7 +223,8 @@
           <button id="zt-go">Add</button>
         </div>
         <details>
-          <summary>History</summary>
+          <summary>History &amp; settings</summary>
+          <div class="zt-set"><span class="zt-mut">Earnings start date</span><input id="zt-es" type="date" title="Earnings are counted from this date"></div>
           <div class="zt-hist" id="zt-hist"></div>
           <button class="zt-reset" id="zt-reset">Reset everything</button>
         </details>
@@ -226,6 +235,17 @@
     const info = $('zt-info'), hist = $('zt-hist'), nIn = $('zt-n'), dIn = $('zt-d');
     earnEl = $('zt-earn');
     earnEl.addEventListener('click', () => updateEarn());
+
+    const esIn = $('zt-es');
+    esIn.value = EARN_START;
+    esIn.max = dayOf(Date.now());
+    esIn.addEventListener('change', () => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(esIn.value)) { esIn.value = EARN_START; return; }
+      EARN_START = esIn.value;
+      try { typeof GM_setValue === 'function' ? GM_setValue(EKEY, EARN_START) : localStorage.setItem(EKEY, EARN_START); } catch (e) {}
+      showEarn('…', 'loading');
+      updateEarn();
+    });
     let lastHtml = '', lastHist = '';
 
     function setToday() { const t = dayOf(Date.now()); dIn.value = t; dIn.max = t; }
